@@ -6,10 +6,15 @@ import static spark.Spark.post;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+
+import freemarker.cache.ClassTemplateLoader;
+import freemarker.template.Configuration;
 import lombok.Data;
+import spark.ModelAndView;
 import spark.Request;
 import spark.Response;
 import spark.Route;
+import spark.template.freemarker.FreeMarkerEngine;
 
 import java.io.IOException;
 import java.io.StringWriter;
@@ -138,7 +143,11 @@ public class BlogService {
     
     
 	public static void main(String[] args) {
-		
+		FreeMarkerEngine freeMarkerEngine = new FreeMarkerEngine();
+		Configuration freeMarkerConfiguration = new Configuration();
+    	freeMarkerConfiguration.setTemplateLoader(new ClassTemplateLoader(BlogService.class, "/"));
+    	freeMarkerEngine.setConfiguration(freeMarkerConfiguration);
+    	
 		Model model = new Model();
 		post("/posts", (request, response) -> {
 			
@@ -161,9 +170,15 @@ public class BlogService {
 		
 		get("/posts", (request, response) -> {
             response.status(200);
-            response.type("application/json");
-            return dataToJson(model.getAllPosts());
+            //response.type("application/json");
+            //return dataToJson(model.getAllPosts());
+            response.type("text/html");
+            Map<String, Object> attributes = new HashMap<>();
+            attributes.put("posts", model.getAllPosts());
+            return freeMarkerEngine.render(new ModelAndView(attributes, "posts.ftl"));
         });
+		
+		get("/", (req, res) -> "Hello Spark World");
 	}
 	
 	static int getHerokuAssignedPort() {
